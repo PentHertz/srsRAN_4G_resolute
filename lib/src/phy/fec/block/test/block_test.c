@@ -67,6 +67,15 @@ void parse_args(int argc, char** argv)
 
 int test(uint32_t block_size)
 {
+  // The tx/rx buffers below are sized to SRSRAN_FEC_BLOCK_MAX_NOF_BITS.  main() only
+  // ever passes values within that bound, but this function has external linkage, so
+  // the compiler cannot prove the fill loop stays inside them, and GCC 15 rejects it
+  // with -Werror=stringop-overflow.  State the contract explicitly instead.
+  if (block_size > SRSRAN_FEC_BLOCK_MAX_NOF_BITS) {
+    ERROR("Invalid block size %d, maximum is %d", block_size, SRSRAN_FEC_BLOCK_MAX_NOF_BITS);
+    return SRSRAN_ERROR;
+  }
+
   struct timeval t[3]                               = {};
   uint8_t        tx[SRSRAN_FEC_BLOCK_MAX_NOF_BITS]  = {};
   uint8_t        rx[SRSRAN_FEC_BLOCK_MAX_NOF_BITS]  = {};

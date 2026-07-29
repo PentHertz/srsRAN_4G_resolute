@@ -301,7 +301,12 @@ int main(int argc, char** argv)
     // Attach CRC for making sure TB with 0 CRC are detected
     srsran_crc_attach_byte(&crc_tb, data, cfg.grant.tb.tbs - 24);
 
-    for (uint32_t a = 0; a < uci_data_tx.cfg.ack[0].nof_acks; a++) {
+    // nof_acks is already clamped to SRSRAN_UCI_MAX_ACK_BITS where it is parsed, but the
+    // compiler cannot carry that through the struct, so ack_value[] looks unbounded here
+    // and GCC 15 rejects the write with -Werror=stringop-overflow.  Re-apply the same
+    // clamp locally: semantically a no-op, and it gives the bound back to the optimizer.
+    uint32_t nof_ack_bits = SRSRAN_MIN(uci_data_tx.cfg.ack[0].nof_acks, SRSRAN_UCI_MAX_ACK_BITS);
+    for (uint32_t a = 0; a < nof_ack_bits; a++) {
       uci_data_tx.value.ack.ack_value[a] = (uint8_t)srsran_random_uniform_int_dist(random_h, 0, 1);
     }
 
